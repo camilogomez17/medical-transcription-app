@@ -13,7 +13,6 @@ from audio_capture import AudioCapture, list_input_devices
 from transcription_engine import TranscriptionEngine
 from translation_engine import TranslationEngine
 
-
 APP_TITLE = "Medical Interpreting Live Transcription"
 
 
@@ -146,14 +145,18 @@ class LiveInterpreterApp(tk.Tk):
     def start_listening(self) -> None:
         # Read Tk variables on the UI thread; workers use these plain values.
         self.active_language = self.spoken_language.get()
-        self.active_source, self.active_target = self.translation_direction.get().split("-")
+        self.active_source, self.active_target = self.translation_direction.get().split(
+            "-"
+        )
         self._clear_queue(self.audio_jobs)
         self.listening = True
         self.start_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
         device_index = self._selected_device_index()
         device_name = self.input_device_label.get()
-        self.status.set(f"Listening for complete phrases from {device_name}; waiting for pauses to transcribe...")
+        self.status.set(
+            f"Listening for complete phrases from {device_name}; waiting for pauses to transcribe..."
+        )
         self.audio.start(device_index=device_index)
 
     def stop_listening(self) -> None:

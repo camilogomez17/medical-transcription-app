@@ -1,4 +1,5 @@
 """English/Spanish medical glossary with optional imported dictionary data."""
+
 from __future__ import annotations
 
 import json

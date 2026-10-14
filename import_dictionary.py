@@ -6,6 +6,7 @@ Usage:
 This creates medical_glossary.json next to this script. It parses the downloaded
 HTML locally; it does not make network requests.
 """
+
 from __future__ import annotations
 
 import json
@@ -56,7 +57,9 @@ def main() -> int:
     glossary: dict[str, str] = {}
     for heading in parser.headings:
         # Example heading: bronchial asthma (SP. asma bronquial) f. ˈas.ma...
-        match = re.match(r"^(.+?)\s*\(\s*SP\.\s*(.+?)\s*\)", heading, flags=re.I)
+        match = re.match(
+            r"^(.+?)\s*\(\s*SP\.\s*(.+?)\s*\)", heading, flags=re.IGNORECASE
+        )
         if not match:
             continue
         english = " ".join(match.group(1).split()).strip(" :-")

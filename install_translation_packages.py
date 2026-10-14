@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from argostranslate import package
 
-
 LANGUAGE_PAIRS = [("en", "es"), ("es", "en")]
 
 
