@@ -48,6 +48,8 @@ class LiveInterpreterApp(tk.Tk):
         self.segment_ids = itertools.count(1)
         self.records: dict[str, dict[str, object]] = {}
         self.input_devices: list[dict[str, object]] = []
+        self.editor_mode = "transcript"
+        self.selected_segment_id: str | None = None
 
         self.input_device_label = tk.StringVar(value="Default input")
         self.selected_language = tk.StringVar(value="en")
@@ -145,6 +147,12 @@ class LiveInterpreterApp(tk.Tk):
         editor.pack(fill="x", pady=(10, 0))
         editor_controls = ttk.Frame(editor)
         editor_controls.pack(fill="x")
+        self.editor_heading = ttk.Label(editor_controls, text="Transcript editor")
+        self.editor_heading.pack(side="left", padx=(0, 12))
+        self.show_translation_button = ttk.Button(editor_controls, text="Read translation", command=self.show_selected_translation, state="disabled")
+        self.show_translation_button.pack(side="right", padx=(8, 0))
+        self.edit_transcript_button = ttk.Button(editor_controls, text="Edit transcript", command=self.show_selected_transcript, state="disabled")
+        self.edit_transcript_button.pack(side="right")
         ttk.Label(editor_controls, text="Detected / source language").pack(side="left")
         self.language_picker = ttk.Combobox(
             editor_controls,
