@@ -308,7 +308,10 @@ class LiveInterpreterApp(tk.Tk):
                     )
                     continue
 
-                source = detected_language if detected_language in SUPPORTED_LANGUAGES else "en"
+                language_supported = detected_language in SUPPORTED_LANGUAGES
+                source = detected_language if language_supported else "en"
+                if not language_supported:
+                    probability = 0.0
                 segment_id = str(next(self.segment_ids))
                 self.events.put(
                     (
@@ -409,7 +412,7 @@ class LiveInterpreterApp(tk.Tk):
             )
         )
         self.status.set("Correction saved. Regenerating translation.")
-        
+
     def _refresh_row(self, segment_id: str, record: dict[str, object]) -> None:
         self.segments.item(
             segment_id,
