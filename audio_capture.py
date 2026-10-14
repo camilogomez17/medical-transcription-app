@@ -83,10 +83,18 @@ class AudioCapture:
         # 20 ms frames are short enough to detect pauses without slicing speech
         # into fixed-duration transcription chunks.
         frame_samples = 320
-        preroll_frames = max(1, int(self.preroll_seconds * self.sample_rate / frame_samples))
-        silence_frames_needed = max(1, int(self.silence_seconds * self.sample_rate / frame_samples))
-        min_speech_frames = max(1, int(self.min_speech_seconds * self.sample_rate / frame_samples))
-        max_utterance_frames = max(1, int(self.max_utterance_seconds * self.sample_rate / frame_samples))
+        preroll_frames = max(
+            1, int(self.preroll_seconds * self.sample_rate / frame_samples)
+        )
+        silence_frames_needed = max(
+            1, int(self.silence_seconds * self.sample_rate / frame_samples)
+        )
+        min_speech_frames = max(
+            1, int(self.min_speech_seconds * self.sample_rate / frame_samples)
+        )
+        max_utterance_frames = max(
+            1, int(self.max_utterance_seconds * self.sample_rate / frame_samples)
+        )
         pre_roll = deque(maxlen=preroll_frames)
         utterance: list[Any] = []
         in_speech = False
@@ -132,11 +140,19 @@ class AudioCapture:
                         if reached_pause or reached_limit:
                             # Trim only the final silence used for endpointing;
                             # retain a small tail so word endings are not clipped.
-                            tail_frames = max(1, int(0.15 * self.sample_rate / frame_samples))
+                            tail_frames = max(
+                                1, int(0.15 * self.sample_rate / frame_samples)
+                            )
                             if reached_pause and len(utterance) > tail_frames:
-                                utterance = utterance[:-max(0, silence_frames - tail_frames)]
+                                utterance = utterance[
+                                    : -max(0, silence_frames - tail_frames)
+                                ]
                             if speech_frames >= min_speech_frames and utterance:
-                                self.on_chunk(np.concatenate(utterance).astype(np.float32, copy=False))
+                                self.on_chunk(
+                                    np.concatenate(utterance).astype(
+                                        np.float32, copy=False
+                                    )
+                                )
                             utterance = []
                             pre_roll.clear()
                             in_speech = False
@@ -145,7 +161,9 @@ class AudioCapture:
 
                 # Flush speech already in progress when Stop is pressed.
                 if in_speech and speech_frames >= min_speech_frames and utterance:
-                    self.on_chunk(np.concatenate(utterance).astype(np.float32, copy=False))
+                    self.on_chunk(
+                        np.concatenate(utterance).astype(np.float32, copy=False)
+                    )
         except Exception as exc:  # noqa: BLE001 — report capture failures to the UI
             if not self._stop_event.is_set():
                 self.on_error(f"Audio input error: {exc}")
