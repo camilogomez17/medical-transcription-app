@@ -5,13 +5,14 @@ from __future__ import annotations
 import threading
 from collections import deque
 from collections.abc import Callable
+from typing import Any
 
 
 def list_input_devices() -> list[dict[str, object]]:
     """Return audio devices that can be used as input sources."""
     try:
         import sounddevice as sd
-    except Exception:
+    except ImportError:
         return []
 
     devices = []
@@ -72,7 +73,7 @@ class AudioCapture:
         try:
             import numpy as np
             import sounddevice as sd
-        except Exception:
+        except ImportError:
             self.on_error(
                 "Microphone capture needs `sounddevice` and `numpy`.\n"
                 "Run: python -m pip install -r requirements.txt"
@@ -87,7 +88,7 @@ class AudioCapture:
         min_speech_frames = max(1, int(self.min_speech_seconds * self.sample_rate / frame_samples))
         max_utterance_frames = max(1, int(self.max_utterance_seconds * self.sample_rate / frame_samples))
         pre_roll = deque(maxlen=preroll_frames)
-        utterance: list[object] = []
+        utterance: list[Any] = []
         in_speech = False
         silence_frames = 0
         speech_frames = 0
@@ -103,7 +104,7 @@ class AudioCapture:
                 device=self.device_index,
             ) as stream:
                 while not self._stop_event.is_set():
-                    frame, overflowed = stream.read(frame_samples)
+                    frame, _overflowed = stream.read(frame_samples)
                     mono = np.asarray(frame, dtype=np.float32).reshape(-1).copy()
                     rms = float(np.sqrt(np.mean(mono * mono) + 1e-12))
                     threshold = max(0.004, noise_rms * 2.5)
@@ -145,6 +146,6 @@ class AudioCapture:
                 # Flush speech already in progress when Stop is pressed.
                 if in_speech and speech_frames >= min_speech_frames and utterance:
                     self.on_chunk(np.concatenate(utterance).astype(np.float32, copy=False))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — report capture failures to the UI
             if not self._stop_event.is_set():
                 self.on_error(f"Audio input error: {exc}")
