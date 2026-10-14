@@ -345,7 +345,7 @@ class LiveInterpreterApp(tk.Tk):
         record = self.records[row]
         if column == "#3":
             target = opposite_language(str(record["source"])).upper()
-            text = f"[{target}]\\n\\n{record['translation']}"
+            text = f"[{target}]\n\n{record['translation']}"
             self.transcript_editor.configure(state="normal")
             self.transcript_editor.delete("1.0", "end")
             self.transcript_editor.insert("1.0", text)
