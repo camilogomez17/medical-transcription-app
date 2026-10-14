@@ -25,7 +25,7 @@ class LiveInterpreterApp(tk.Tk):
         self.minsize(900, 560)
 
         self.events: queue.Queue[tuple[str, str]] = queue.Queue()
-        # Keep only a small amount of pending work so the UI stays near real time.
+        # Preserve completed phrases in order; processing delays should not silently drop audio.
         self.audio_jobs: queue.Queue[tuple[object, str, str, str]] = queue.Queue()
         self.translation_jobs: queue.Queue[tuple[str, str, str]] = queue.Queue()
         self.transcriber = TranscriptionEngine(model_size="base")
@@ -252,7 +252,7 @@ class LiveInterpreterApp(tk.Tk):
 
                 # Show the transcript immediately; translation runs independently.
                 self.events.put(("transcript", text))
-                self._put_latest(self.translation_jobs, (text, source, target))
+                self.translation_jobs.put((text, source, target))
             except Exception as exc:
                 self.events.put(("status", f"Transcription failed: {exc}"))
             finally:
