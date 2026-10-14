@@ -1,108 +1,77 @@
 # Medical Interpreting Live Transcription Prototype
 
-This is a local Python desktop prototype for English/Spanish medical interpreting support.
+A local Python desktop prototype for English/Spanish medical interpreting support.
 
-The 20/80 idea:
+## What it does
 
-1. Capture microphone audio continuously and detect phrase-ending pauses.
-2. Transcribe each complete phrase locally with `faster-whisper`.
-3. Show a draft translation or glossary hints.
-4. Keep the interpreter in control.
+- Captures audio continuously from a selected input device.
+- Uses pauses in speech to detect phrase boundaries.
+- Transcribes completed phrases locally with `faster-whisper`.
+- Shows draft translation or glossary support.
+- Lets the interpreter save a local transcript.
 
-This prototype is for practice and workflow design. Do not use it with real patient information unless your employer/client has approved the workflow and all privacy requirements are covered.
+This is an experimental prototype, not a certified medical device or authoritative medical record. Transcription and translation can be wrong, especially for medication names, dosages, numbers, negation, and medical terminology. Always verify output against the original audio.
 
 ## Setup
 
-From this folder:
+Requires Python 3.10 or newer and a working audio input.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 python live_app.py
 ```
 
-On macOS, allow microphone access when prompted.
+On macOS, allow microphone access when prompted. On first run, `faster-whisper` may need internet access to download its speech recognition model.
 
-## Desktop Audio on macOS
+## Audio input on macOS
 
-macOS usually does not expose normal speaker audio as a recordable input. To transcribe desktop audio, route the sound into an input device first.
+macOS usually does not expose speaker output as a recordable input by default. To transcribe desktop audio, route it to an input device first. Options include BlackHole (free) or Loopback (paid).
 
-Common options:
-
-- BlackHole: free virtual audio device.
-- Loopback: paid, polished routing app.
-- A multi-output device: lets you hear audio and route it into BlackHole at the same time.
-
-After setting that up:
-
-1. Restart the app.
-2. Press **Refresh Inputs**.
-3. Pick the virtual device, such as **BlackHole 2ch**, from **Audio input**.
+1. Set up the virtual audio device and route the sound to it.
+2. Restart the app and select **Refresh Inputs**.
+3. Choose the virtual device under **Audio input**.
 4. Press **Start Listening**.
 
-If you select your microphone, the app hears your mic. If you select BlackHole or another virtual input, the app hears the audio routed into that device.
+If you select your microphone, the app hears your microphone. If you select a virtual input, it hears audio routed into that device.
 
-## Optional Local Translation Setup
+## Translation setup
 
-The app can transcribe before translation is fully configured. If the translation panel says the local translation package is missing, run:
+The app can transcribe even if the optional local translation packages are not configured. To install the English/Spanish Argos Translate packages, activate the virtual environment and run:
 
 ```bash
-source .venv/bin/activate
 python install_translation_packages.py
 ```
 
-Then restart the app:
+Then restart the app. If translation is unavailable, the app uses glossary hints rather than presenting them as a reliable full translation.
 
-```bash
-python live_app.py
-```
+## Phrase detection
 
-## First Run
+Audio is captured continuously. The app uses an energy-based voice activity heuristic and a short silence interval to decide when a phrase is complete before sending it to transcription. Background noise, microphone levels, accents, and overlapping speech can affect detection. Adjusting the silence threshold or pause duration may be necessary for a particular setup.
 
-1. Open the app.
-2. Choose the spoken language: English or Spanish.
-3. Choose the translation direction.
-4. Choose an audio input.
-5. Press **Start Listening**.
-6. Speak in short phrases or play routed desktop audio.
-7. Press **Stop**.
-
-## Notes
-
-- `faster-whisper` runs speech-to-text locally after the model is downloaded.
-- The first model download may require internet access.
-- Translation is intentionally conservative in this prototype. If `argostranslate` is not installed/configured, the app shows glossary hints instead of pretending to be a reliable translator.
-- Save/export is local only.
+The app processes phrases with one transcription worker and one translation worker. If processing is slower than the speaker, queued phrases can accumulate and increase delay.
 
 ## Files
 
-- `live_app.py`: desktop interface.
-- `audio_capture.py`: continuous microphone capture and silence-based phrase detection.
-- `transcription_engine.py`: local transcription wrapper.
+- `live_app.py`: desktop interface and background workers.
+- `audio_capture.py`: continuous audio capture and silence-based phrase detection.
+- `transcription_engine.py`: local speech recognition wrapper.
 - `translation_engine.py`: optional local translation and glossary fallback.
-- `install_translation_packages.py`: downloads local English/Spanish translation packages for Argos Translate.
-- `glossary.py`: English/Spanish medical glossary.
-- `requirements.txt`: Python packages to install.
+- `install_translation_packages.py`: installs local English/Spanish Argos Translate packages.
+- `glossary.py`: built-in English/Spanish medical glossary.
+- `import_dictionary.py`: optional importer for a third-party medical Spanish dictionary HTML file.
+- `requirements.txt`: Python dependencies.
 
+## Privacy and safety
 
-## Low-latency changes
+Audio processing is intended to run locally after required models and packages are installed. This does not by itself guarantee that a deployment is compliant with HIPAA or any other privacy law. Do not use real patient information unless the workflow has been approved by the relevant employer/client and all applicable privacy, security, and retention requirements are met. Do not commit patient audio, transcripts, credentials, or other sensitive information to this repository.
 
-- Audio chunks are 2 seconds instead of 6 seconds. Shorter chunks reduce waiting time but can affect recognition quality.
-- The app uses one transcription worker and one translation worker rather than creating a thread for every chunk.
-- Transcript text is displayed as soon as transcription completes; translation runs separately.
-- The default model is `base` on CPU with int8 quantization to favor latency over the previous `medium` model. To prioritize recognition quality over speed, change `model_size="base"` in `live_app.py` to `model_size="medium"` and measure the delay on your machine.
-- If CPU processing cannot keep up, the app may skip a pending audio chunk and display a warning. Stop and verify the source audio/transcript; do not treat this prototype as a complete or authoritative medical record.
+## Copyright and permissions
 
-For real patient encounters, use only if your employer/client has approved the workflow and the required privacy/security controls are in place. Always verify medical terminology and numbers against the source audio.
-## Import the Medical Spanish Dictionary
+Copyright © 2026 Camilo Gomez. All rights reserved.
 
-Download the dictionary HTML from the repository's Raw link, then run:
+This project and its source code are proprietary. No permission is granted to copy, modify, distribute, sublicense, or commercially use this software without prior written permission from the copyright holder, except where permitted by applicable law. No open-source license is granted by this repository.
 
-```bash
-curl -L "https://raw.githubusercontent.com/fredymrodriguez/MedicalSpanishDictionary/main/docs/index.html" -o medical-spanish-dictionary.html
-python import_dictionary.py medical-spanish-dictionary.html
-```
-
-The importer creates `medical_glossary.json` in this project folder. The app loads it automatically at startup and combines it with the built-in glossary. Re-run the import command whenever you download an updated dictionary. The importer extracts English headwords and Spanish equivalents from headings; it does not import the page's definitions, examples, or metadata. Review translations for accuracy before using them in a medical setting.
-
+Third-party dependencies and any separately downloaded dictionary content remain subject to their own licenses and terms.
