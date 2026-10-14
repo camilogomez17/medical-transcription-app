@@ -1,8 +1,4 @@
-"""Local translation helpers.
-
-Argos Translate can run locally, but it still needs language packages installed.
-If those packages are not present, this module returns glossary hints instead.
-"""
+"""Local translation helpers with clearly labeled glossary fallback."""
 
 from __future__ import annotations
 
@@ -23,12 +19,17 @@ class TranslationEngine:
         if not text.strip():
             return ""
 
+        if source == target:
+            return text
+
         if self._translate is not None:
             translated = self._translate_with_argos(text, source, target)
             if translated is not None:
                 return translated
 
-        return self._glossary_fallback(text, "Local translation is not installed yet.")
+        return self._glossary_fallback(
+            text, source, target, "Local translation is not installed yet."
+        )
 
     def _translate_with_argos(self, text: str, source: str, target: str) -> str | None:
         installed_languages = self._translate.get_installed_languages()
@@ -38,6 +39,8 @@ class TranslationEngine:
         if source_language is None or target_language is None:
             return self._glossary_fallback(
                 text,
+                source,
+                target,
                 (
                     "Local translation package is not installed yet. "
                     "Run: python install_translation_packages.py"
@@ -48,6 +51,8 @@ class TranslationEngine:
         if translation is None:
             return self._glossary_fallback(
                 text,
+                source,
+                target,
                 (
                     f"Local {source}->{target} translation package is missing. "
                     "Run: python install_translation_packages.py"
@@ -57,7 +62,9 @@ class TranslationEngine:
         try:
             return translation.translate(text)
         except Exception as exc:
-            return self._glossary_fallback(text, f"Local translation failed: {exc}")
+            return self._glossary_fallback(
+                text, source, target, f"Local translation failed: {exc}"
+            )
 
     def _find_language(self, languages, code: str):
         for language in languages:
@@ -65,11 +72,26 @@ class TranslationEngine:
                 return language
         return None
 
-    def _glossary_fallback(self, text: str, reason: str) -> str:
-        matches = find_terms(text)
+    def _glossary_fallback(
+        self, text: str, source: str, target: str, reason: str
+    ) -> str:
+        matches = find_terms(text, source)
         if not matches:
-            return f"{reason}\n\nGlossary hints: no medical glossary terms found yet."
+            return (
+                f"[GLOSSARY ONLY — NOT A FULL TRANSLATION] {reason}\n\n"
+                "No matching medical glossary terms were found. Do not use this "
+                "as a complete translation."
+            )
 
-        lines = [reason, "", "Glossary hints:"]
-        lines.extend(f"- {english}: {spanish}" for english, spanish in matches)
+        lines = [
+            f"[GLOSSARY ONLY — NOT A FULL TRANSLATION] {reason}",
+            "",
+            "Matching glossary terms (reference only):",
+        ]
+        if source == "es" and target == "en":
+            lines.extend(f"- {spanish}: {english}" for english, spanish in matches)
+        else:
+            lines.extend(f"- {english}: {spanish}" for english, spanish in matches)
+        lines.append("")
+        lines.append("This is not a complete translation.")
         return "\n".join(lines)

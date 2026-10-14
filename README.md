@@ -113,15 +113,30 @@ Restart the app afterward. If translation is unavailable, the app uses glossary 
 
 - Captures audio continuously from a selected input device.
 - Uses pauses in speech to detect phrase boundaries.
-- Transcribes completed phrases locally with `faster-whisper`.
-- Shows draft translation or glossary support.
-- Lets the interpreter save a local transcript.
+- Detects English or Spanish independently for each utterance with `faster-whisper`.
+- Automatically translates each utterance into the opposite language when the required Argos Translate packages are installed.
+- Displays utterances in a segment table with source language, transcript, translation, and status.
+- Lets you select an utterance, edit its transcript, optionally correct its source language, and regenerate its translation.
+- Keeps the initial recognition text available in saved session exports when you make a correction.
+- Labels glossary-only fallback output clearly so it is not mistaken for a full translation.
+- Lets the interpreter save a local session transcript.
+
+Language detection can be wrong for short phrases, names, accents, or mixed-language speech. Check the source-language label and use the editor's language selector when needed. Correcting the transcript invalidates the previous translation and queues a new one; stale translation results are ignored.
 
 ## Phrase detection
 
 Audio is captured continuously. The app uses an energy-based voice activity heuristic and a short silence interval to decide when a phrase is complete before sending it to transcription. Background noise, microphone levels, accents, and overlapping speech can affect detection. Adjusting the silence threshold or pause duration may be necessary for a particular setup.
 
 The app processes phrases with one transcription worker and one translation worker. If processing is slower than the speaker, queued phrases can accumulate and increase delay.
+
+## Run the basic checks
+
+From the activated virtual environment, run:
+
+```bash
+python -m compileall -q .
+python -m unittest discover -s tests -v
+```
 
 ## Project files
 
