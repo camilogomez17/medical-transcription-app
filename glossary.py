@@ -62,12 +62,12 @@ def find_terms(
         candidates = [
             (english, spanish)
             for english, spanish in GLOSSARY.items()
-            if re.search(rf"(?<!\\w){re.escape(spanish)}(?!\\w)", text, re.IGNORECASE)
+            if re.search(rf"(?<!\w){re.escape(spanish)}(?!\w)", text, re.IGNORECASE)
         ]
     else:
         candidates = [
             (english, spanish)
             for english, spanish in GLOSSARY.items()
-            if re.search(rf"(?<!\\w){re.escape(english)}(?!\\w)", text, re.IGNORECASE)
+            if re.search(rf"(?<!\w){re.escape(english)}(?!\w)", text, re.IGNORECASE)
         ]
     return candidates
