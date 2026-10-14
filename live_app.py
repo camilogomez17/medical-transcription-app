@@ -502,3 +502,5 @@ class LiveInterpreterApp(tk.Tk):
 if __name__ == "__main__":
     app = LiveInterpreterApp()
     app.mainloop()
+
+# Translation reader UI changes are being prepared.
