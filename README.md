@@ -143,7 +143,3 @@ Audio processing is intended to run locally after required models and packages a
 ## Copyright and permissions
 
 Copyright © 2026 Camilo Gomez. All rights reserved.
-
-This project and its source code are proprietary. No permission is granted to copy, modify, distribute, sublicense, or commercially use this software without prior written permission from the copyright holder, except where permitted by applicable law. No open-source license is granted by this repository.
-
-Third-party dependencies and any separately downloaded dictionary content remain subject to their own licenses and terms.
