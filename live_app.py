@@ -32,9 +32,9 @@ class LiveInterpreterApp(tk.Tk):
 
         self.events: queue.Queue[tuple[str, object]] = queue.Queue()
         self.audio_jobs: queue.Queue[tuple[int, object]] = queue.Queue()
-        self.translation_jobs: queue.Queue[
-            tuple[int, str, str, str, str, int]
-        ] = queue.Queue()
+        self.translation_jobs: queue.Queue[tuple[int, str, str, str, str, int]] = (
+            queue.Queue()
+        )
         self.transcriber = TranscriptionEngine(model_size="base")
         self.translator = TranslationEngine()
         self.audio = AudioCapture(
@@ -304,7 +304,10 @@ class LiveInterpreterApp(tk.Tk):
                 )
                 if not text:
                     self.events.put(
-                        ("status", (session_id, "No speech detected in that utterance."))
+                        (
+                            "status",
+                            (session_id, "No speech detected in that utterance."),
+                        )
                     )
                     continue
 
