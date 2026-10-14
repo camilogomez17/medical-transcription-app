@@ -140,6 +140,7 @@ class LiveInterpreterApp(tk.Tk):
         table_frame.rowconfigure(0, weight=1)
         table_frame.columnconfigure(0, weight=1)
         self.segments.bind("<<TreeviewSelect>>", self._on_segment_selected)
+        self.segments.bind("<ButtonRelease-1>", self._on_table_click, add="+")
 
         editor = ttk.LabelFrame(root, text="Correct selected utterance", padding=8)
         editor.pack(fill="x", pady=(10, 0))
@@ -377,6 +378,29 @@ class LiveInterpreterApp(tk.Tk):
         self.transcript_editor.insert("1.0", str(record["transcript"]))
         self.selected_language.set(str(record["source"]))
         self.apply_button.configure(state="normal")
+
+    def _on_table_click(self, event) -> None:
+        row = self.segments.identify_row(event.y)
+        column = self.segments.identify_column(event.x)
+        if not row or row not in self.records:
+            return
+        self.selected_segment_id = row
+        record = self.records[row]
+        if column == "#3":
+            target = opposite_language(str(record["source"])).upper()
+            text = f"[{target}]\\n\\n{record['translation']}"
+            self.transcript_editor.configure(state="normal")
+            self.transcript_editor.delete("1.0", "end")
+            self.transcript_editor.insert("1.0", text)
+            self.transcript_editor.configure(state="disabled")
+            self.status.set("Translation shown below (read-only). Click the transcript column to edit.")
+        else:
+            self.transcript_editor.configure(state="normal")
+            self.transcript_editor.delete("1.0", "end")
+            self.transcript_editor.insert("1.0", str(record["transcript"]))
+            self.selected_language.set(str(record["source"]))
+            self.apply_button.configure(state="normal")
+            self.status.set("Transcript editing mode.")
 
     def apply_correction(self) -> None:
         selection = self.segments.selection()
