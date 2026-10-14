@@ -1,7 +1,4 @@
-"""Desktop prototype for live medical interpreting support."""
-
 from __future__ import annotations
-
 import datetime as dt
 import itertools
 import queue
@@ -9,27 +6,20 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-
 from audio_capture import AudioCapture, list_input_devices
 from transcription_engine import TranscriptionEngine
 from translation_engine import TranslationEngine
-
 APP_TITLE = "Medical Interpreting Live Transcription"
 SUPPORTED_LANGUAGES = {"en", "es"}
-
-
 def opposite_language(language: str) -> str:
     """Return the other supported language, defaulting unknown input to English."""
     return "es" if language == "en" else "en"
-
-
 class LiveInterpreterApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title(APP_TITLE)
         self.geometry("1280x800")
         self.minsize(960, 640)
-
         self.events: queue.Queue[tuple[str, object]] = queue.Queue()
         self.audio_jobs: queue.Queue[tuple[int, object]] = queue.Queue()
         self.translation_jobs: queue.Queue[tuple[int, str, str, str, str, int]] = (
@@ -48,30 +38,24 @@ class LiveInterpreterApp(tk.Tk):
         self.segment_ids = itertools.count(1)
         self.records: dict[str, dict[str, object]] = {}
         self.input_devices: list[dict[str, object]] = []
-
         self.input_device_label = tk.StringVar(value="Default input")
         self.selected_language = tk.StringVar(value="en")
         self.status = tk.StringVar(value=self._startup_status())
-
         self._load_input_devices()
         self._build_ui()
         threading.Thread(target=self._transcription_worker, daemon=True).start()
         threading.Thread(target=self._translation_worker, daemon=True).start()
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.after(50, self._drain_events)
-
     def _startup_status(self) -> str:
         if self.transcriber.ready:
             return "Ready. Language detection is automatic for each utterance."
         return f"Setup needed: {self.transcriber.error}"
-
     def _build_ui(self) -> None:
         root = ttk.Frame(self, padding=12)
         root.pack(fill="both", expand=True)
-
         controls = ttk.Frame(root)
         controls.pack(fill="x")
-
         self.start_button = ttk.Button(
             controls, text="Start Listening", command=self.start_listening
         )
@@ -80,7 +64,6 @@ class LiveInterpreterApp(tk.Tk):
             controls, text="Stop", command=self.stop_listening, state="disabled"
         )
         self.stop_button.pack(side="left", padx=(8, 16))
-
         ttk.Label(controls, text="Audio input").pack(side="left")
         self.input_device = ttk.Combobox(
             controls,
@@ -93,14 +76,12 @@ class LiveInterpreterApp(tk.Tk):
         ttk.Button(
             controls, text="Refresh Inputs", command=self.refresh_input_devices
         ).pack(side="left")
-
         ttk.Button(controls, text="Save Session", command=self.save_transcript).pack(
             side="right"
         )
         ttk.Button(controls, text="Clear", command=self.clear_text).pack(
             side="right", padx=8
         )
-
         ttk.Label(
             root,
             text=(
@@ -109,10 +90,8 @@ class LiveInterpreterApp(tk.Tk):
             ),
             wraplength=1200,
         ).pack(anchor="w", pady=(10, 6))
-
         table_frame = ttk.Frame(root)
         table_frame.pack(fill="both", expand=True)
-
         columns = ("language", "transcript", "translation", "status")
         self.segments = ttk.Treeview(
             table_frame, columns=columns, show="headings", selectmode="browse"
@@ -140,7 +119,7 @@ class LiveInterpreterApp(tk.Tk):
         table_frame.rowconfigure(0, weight=1)
         table_frame.columnconfigure(0, weight=1)
         self.segments.bind("<<TreeviewSelect>>", self._on_segment_selected)
-
+        self.segments.bind("<ButtonRelease-1>", self._on_table_click, add="+")
         editor = ttk.LabelFrame(root, text="Correct selected utterance", padding=8)
         editor.pack(fill="x", pady=(10, 0))
         editor_controls = ttk.Frame(editor)
@@ -165,25 +144,20 @@ class LiveInterpreterApp(tk.Tk):
             state="disabled",
         )
         self.apply_button.pack(side="right")
-
         self.transcript_editor = tk.Text(
             editor, height=4, wrap="word", font=("Helvetica", 13), undo=True
         )
         self.transcript_editor.pack(fill="x", expand=False, pady=(6, 0))
-
         ttk.Label(
             editor,
             text=(
-                "If local translation packages are unavailable, the result will be "
-                "labeled as glossary-only reference, not a full translation."
+                "Glossary-only output is not a full translation."
             ),
             wraplength=1200,
         ).pack(anchor="w", pady=(6, 0))
-
         ttk.Label(root, textvariable=self.status, anchor="w").pack(
             fill="x", pady=(8, 0)
         )
-
     def start_listening(self) -> None:
         if not self.transcriber.ready:
             messagebox.showerror(
@@ -200,14 +174,12 @@ class LiveInterpreterApp(tk.Tk):
             f"Listening on {device_name}. Detecting English or Spanish automatically."
         )
         self.audio.start(device_index=self._selected_device_index())
-
     def stop_listening(self) -> None:
         self.listening = False
         self.audio.stop()
         self.start_button.configure(state="normal")
         self.stop_button.configure(state="disabled")
-        self.status.set("Stopped. Any final utterance is being processed.")
-
+        self.status.set("Stopped.")
     def clear_text(self) -> None:
         self.session_id += 1
         self._clear_queue(self.audio_jobs)
@@ -218,7 +190,6 @@ class LiveInterpreterApp(tk.Tk):
         self.transcript_editor.delete("1.0", "end")
         self.apply_button.configure(state="disabled")
         self.status.set("Session cleared.")
-
     def save_transcript(self) -> None:
         default_name = f"interpreting_session_{dt.datetime.now():%Y%m%d_%H%M%S}.txt"
         path = filedialog.asksaveasfilename(
@@ -228,7 +199,6 @@ class LiveInterpreterApp(tk.Tk):
         )
         if not path:
             return
-
         lines = [
             APP_TITLE,
             f"Saved: {dt.datetime.now():%Y-%m-%d %H:%M:%S}",
@@ -252,7 +222,6 @@ class LiveInterpreterApp(tk.Tk):
             lines.append("")
         Path(path).write_text("\n".join(lines), encoding="utf-8")
         self.status.set(f"Session saved to {path}")
-
     def refresh_input_devices(self) -> None:
         current = self.input_device_label.get()
         self._load_input_devices()
@@ -260,10 +229,8 @@ class LiveInterpreterApp(tk.Tk):
         self.input_device.configure(values=labels)
         self.input_device_label.set(current if current in labels else labels[0])
         self.status.set("Audio inputs refreshed.")
-
     def _load_input_devices(self) -> None:
         self.input_devices = list_input_devices()
-
     def _input_device_labels(self) -> tuple[str, ...]:
         labels = ["Default input"]
         for device in self.input_devices:
@@ -271,7 +238,6 @@ class LiveInterpreterApp(tk.Tk):
                 f"{device['index']}: {device['name']} ({device['channels']} input ch)"
             )
         return tuple(labels)
-
     def _selected_device_index(self) -> int | None:
         label = self.input_device_label.get()
         if label == "Default input":
@@ -280,7 +246,6 @@ class LiveInterpreterApp(tk.Tk):
             return int(label.split(":", 1)[0])
         except ValueError:
             return None
-
     @staticmethod
     def _clear_queue(work_queue: queue.Queue) -> None:
         while True:
@@ -288,13 +253,10 @@ class LiveInterpreterApp(tk.Tk):
                 work_queue.get_nowait()
             except queue.Empty:
                 return
-
     def _handle_audio_chunk(self, samples) -> None:
         self.audio_jobs.put((self.session_id, samples))
-
     def _handle_audio_error(self, message: str) -> None:
         self.events.put(("error", (self.session_id, message)))
-
     def _transcription_worker(self) -> None:
         while True:
             session_id, samples = self.audio_jobs.get()
@@ -310,7 +272,6 @@ class LiveInterpreterApp(tk.Tk):
                         )
                     )
                     continue
-
                 language_supported = detected_language in SUPPORTED_LANGUAGES
                 source = detected_language if language_supported else "en"
                 if not language_supported:
@@ -344,7 +305,6 @@ class LiveInterpreterApp(tk.Tk):
                 )
             finally:
                 self.audio_jobs.task_done()
-
     def _translation_worker(self) -> None:
         while True:
             session_id, segment_id, text, source, target, revision = (
@@ -367,7 +327,6 @@ class LiveInterpreterApp(tk.Tk):
                 )
             finally:
                 self.translation_jobs.task_done()
-
     def _on_segment_selected(self, _event=None) -> None:
         selection = self.segments.selection()
         if not selection:
@@ -380,7 +339,29 @@ class LiveInterpreterApp(tk.Tk):
         self.transcript_editor.insert("1.0", str(record["transcript"]))
         self.selected_language.set(str(record["source"]))
         self.apply_button.configure(state="normal")
-
+    def _on_table_click(self, event) -> None:
+        row = self.segments.identify_row(event.y)
+        column = self.segments.identify_column(event.x)
+        if not row or row not in self.records:
+            return
+        self.selected_segment_id = row
+        record = self.records[row]
+        if column == "#3":
+            target = opposite_language(str(record["source"])).upper()
+            text = f"[{target}]\\n\\n{record['translation']}"
+            self.transcript_editor.configure(state="normal")
+            self.transcript_editor.delete("1.0", "end")
+            self.transcript_editor.insert("1.0", text)
+            self.transcript_editor.configure(state="disabled")
+            self.apply_button.configure(state="disabled")
+            self.status.set("Translation shown below (read-only). Click transcript to edit.")
+        else:
+            self.transcript_editor.configure(state="normal")
+            self.transcript_editor.delete("1.0", "end")
+            self.transcript_editor.insert("1.0", str(record["transcript"]))
+            self.selected_language.set(str(record["source"]))
+            self.apply_button.configure(state="normal")
+            self.status.set("Editing transcript.")
     def apply_correction(self) -> None:
         selection = self.segments.selection()
         if not selection:
@@ -397,7 +378,6 @@ class LiveInterpreterApp(tk.Tk):
         if source not in SUPPORTED_LANGUAGES:
             messagebox.showwarning(APP_TITLE, "Choose English or Spanish.")
             return
-
         record["transcript"] = corrected_text
         record["source"] = source
         record["revision"] = int(record["revision"]) + 1
@@ -414,8 +394,7 @@ class LiveInterpreterApp(tk.Tk):
                 int(record["revision"]),
             )
         )
-        self.status.set("Correction saved. Regenerating translation.")
-
+        self.status.set("Retranslating correction.")
     def _refresh_row(self, segment_id: str, record: dict[str, object]) -> None:
         self.segments.item(
             segment_id,
@@ -426,14 +405,12 @@ class LiveInterpreterApp(tk.Tk):
                 str(record["status"]),
             ),
         )
-
     def _drain_events(self) -> None:
         while True:
             try:
                 event_type, payload = self.events.get_nowait()
             except queue.Empty:
                 break
-
             if event_type == "new_segment":
                 session_id, segment_id, text, source, probability = payload
                 if session_id != self.session_id:
@@ -493,15 +470,11 @@ class LiveInterpreterApp(tk.Tk):
                 if event_type == "error":
                     self.stop_listening()
                     messagebox.showerror(APP_TITLE, message)
-
         self.after(50, self._drain_events)
-
     def _on_close(self) -> None:
         self.listening = False
         self.audio.stop()
         self.destroy()
-
-
 if __name__ == "__main__":
     app = LiveInterpreterApp()
     app.mainloop()
