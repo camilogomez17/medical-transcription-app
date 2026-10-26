@@ -66,8 +66,13 @@ class AudioCapture:
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 
-    def stop(self) -> None:
+    def stop(self, wait: bool = False) -> bool:
+        """Request capture shutdown and optionally wait for its thread to exit."""
         self._stop_event.set()
+        thread = self._thread
+        if wait and thread and thread is not threading.current_thread():
+            thread.join(timeout=2.0)
+        return thread is None or not thread.is_alive()
 
     def _run(self) -> None:
         try:
