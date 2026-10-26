@@ -183,21 +183,24 @@ class LiveInterpreterApp(tk.Tk):
     def new_call(self) -> None:
         """Reset the current call without allowing its buffered audio into the next one."""
         was_listening = self.listening
+        self.listening = False
 
-        if was_listening:
-            self.listening = False
-            stopped = self.audio.stop(wait=True)
-            if not stopped:
-                self.listening = True
-                messagebox.showwarning(
-                    APP_TITLE,
-                    "Audio capture did not stop in time. The transcript was not cleared. "
-                    "Press Stop and try again.",
-                )
-                return
+        # Wait even if Stop was pressed just before New Call. The capture thread may
+        # still be flushing its final utterance, which must belong to the old session.
+        stopped = self.audio.stop(wait=True)
+        if not stopped:
             self.start_button.configure(state="normal")
             self.stop_button.configure(state="disabled")
+            self.status.set("Audio capture is still stopping. Try New Call again.")
+            messagebox.showwarning(
+                APP_TITLE,
+                "Audio capture did not stop in time. The transcript was not cleared. "
+                "Try New Call again once capture has stopped.",
+            )
+            return
 
+        self.start_button.configure(state="normal")
+        self.stop_button.configure(state="disabled")
         self.clear_text()
 
         if was_listening:
