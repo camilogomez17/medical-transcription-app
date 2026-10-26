@@ -79,9 +79,9 @@ class LiveInterpreterApp(tk.Tk):
         ttk.Button(controls, text="Save Session", command=self.save_transcript).pack(
             side="right"
         )
-        ttk.Button(controls, text="Clear", command=self.clear_text).pack(
-            side="right", padx=8
-        )
+        ttk.Button(
+            controls, text="New Call / Clear", command=self.new_call
+        ).pack(side="right", padx=8)
         ttk.Label(
             root,
             text=(
@@ -180,13 +180,40 @@ class LiveInterpreterApp(tk.Tk):
         self.start_button.configure(state="normal")
         self.stop_button.configure(state="disabled")
         self.status.set("Stopped.")
+    def new_call(self) -> None:
+        """Reset the current call without allowing its buffered audio into the next one."""
+        was_listening = self.listening
+
+        if was_listening:
+            self.listening = False
+            stopped = self.audio.stop(wait=True)
+            if not stopped:
+                self.listening = True
+                messagebox.showwarning(
+                    APP_TITLE,
+                    "Audio capture did not stop in time. The transcript was not cleared. "
+                    "Press Stop and try again.",
+                )
+                return
+            self.start_button.configure(state="normal")
+            self.stop_button.configure(state="disabled")
+
+        self.clear_text()
+
+        if was_listening:
+            # Start a fresh capture thread only after the previous thread has exited.
+            self.start_listening()
+
     def clear_text(self) -> None:
+        # Invalidate in-flight transcription/translation results before clearing UI.
         self.session_id += 1
         self._clear_queue(self.audio_jobs)
         self._clear_queue(self.translation_jobs)
         self.records.clear()
+        self.selected_segment_id = None
         for item in self.segments.get_children():
             self.segments.delete(item)
+        self.transcript_editor.configure(state="normal")
         self.transcript_editor.delete("1.0", "end")
         self.apply_button.configure(state="disabled")
         self.status.set("Session cleared.")
