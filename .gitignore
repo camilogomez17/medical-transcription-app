@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+.env.*
+
+# Local model/package caches and session exports
+.cache/
+models/
+interpreting_session_*.txt
+medical_glossary.json
+
+.DS_Store
